@@ -5,12 +5,19 @@
  */
 package checker;
 
+import java.sql.*;
 /**
  *
  * @author Draug
  */
+
 public class checker extends javax.swing.JFrame {
 
+    static Helper helper = new Helper();
+    static Connection conn;
+    static Statement stmt;
+    static ResultSet resultSet;
+    
     /**
      * Creates new form checker
      */
@@ -47,6 +54,8 @@ public class checker extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
+        String query;
+        
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
@@ -71,11 +80,22 @@ public class checker extends javax.swing.JFrame {
         //</editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new checker().setVisible(true);
-            }
+        java.awt.EventQueue.invokeLater(() -> {
+            new checker().setVisible(true);
         });
+        
+        conn = helper.createDBConnect("localhost", "family", "family", "sysmon");
+        try {
+            stmt = conn.createStatement();
+            query = "SELECT id, name FROM chk_locations ORDER BY id";
+            resultSet = stmt.executeQuery(query);
+            while (resultSet.next()){
+                System.out.println(resultSet.getInt("id")+"  "+resultSet.getString("name"));
+            }
+            
+        } catch (SQLException e) {
+            System.out.println(e);
+        }   
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

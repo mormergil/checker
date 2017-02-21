@@ -17,7 +17,6 @@ public class Sensor {
     private int groupID;
     
     public Sensor(int _id) {
-        
     }
     
     public String getName(){
