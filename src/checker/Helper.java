@@ -45,6 +45,16 @@ public class Helper {
         catch (Exception e) { }
     }
 
-    
+    public ResultSet query(Connection _conn, String _query){
+        ResultSet resultSet;
+        try {
+            Statement stmt = _conn.createStatement();
+            resultSet = stmt.executeQuery(_query);
+            return resultSet;
+          } catch (SQLException e) {
+            System.out.println(e);
+        }
+        return null;
+    }
     
 }

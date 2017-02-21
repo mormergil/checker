@@ -54,6 +54,8 @@ public class checker extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
+        Helper helper = new Helper();
+        ResultSet resultSet;
         String query;
         
         /* Set the Nimbus look and feel */
@@ -85,17 +87,19 @@ public class checker extends javax.swing.JFrame {
         });
         
         conn = helper.createDBConnect("localhost", "family", "family", "sysmon");
+        
         try {
-            stmt = conn.createStatement();
-            query = "SELECT id, name FROM chk_locations ORDER BY id";
-            resultSet = stmt.executeQuery(query);
+            resultSet = helper.query(conn, "SELECT id FROM chk_locations ORDER BY id");
             while (resultSet.next()){
-                System.out.println(resultSet.getInt("id")+"  "+resultSet.getString("name"));
+                Location l = new Location(conn, resultSet.getInt("id"));
+                System.out.println(l.getName());
             }
             
         } catch (SQLException e) {
             System.out.println(e);
-        }   
+        }
+        
+        
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
