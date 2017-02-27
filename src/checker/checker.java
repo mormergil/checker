@@ -92,7 +92,16 @@ public class checker extends javax.swing.JFrame {
             resultSet = helper.query(conn, "SELECT id FROM chk_locations ORDER BY id");
             while (resultSet.next()){
                 Location l = new Location(conn, resultSet.getInt("id"));
-                System.out.println(l.getName() + "  "+ l.getLocationsString());
+                System.out.println(l.getName());
+                String groupsInLocation = l.getLocationsString();
+                String[] gil = groupsInLocation.split(",");
+                for (int i=0; i<gil.length; i++){
+                    String gid = gil[i];
+                    System.out.print(gid + " -> ");
+                    Group g = new Group(conn, Integer.parseInt(gid));
+                    System.out.println(g.getSensorsString());
+                }
+                System.out.println();
             }
             
         } catch (SQLException e) {
