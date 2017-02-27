@@ -16,6 +16,7 @@ public class Location {
     private int id;
     private String name="";
     private String description="";
+    private String locations="";
     
     public Location(Connection _conn, int _id){
         Helper helper = new Helper();
@@ -33,10 +34,30 @@ public class Location {
                 System.out.println(e);
             }
         }
+        
+        query = "SELECT id_group FROM chk_locations_groups WHERE id_location ='"+ _id +"'";
+        resultSet = helper.query(_conn, query);
+        try {
+            while (resultSet.next()){
+                locations = locations.concat(resultSet.getString("id_group"));
+                locations = locations.concat(",");
+            }
+            if (locations.length()>1) {locations = locations.substring(0, locations.length()-1);}
+        } catch (SQLException e) {
+                System.out.println(e);
+        }    
+        
     }
     
     public String getName(){
         return name;
     }
     
+    public String getDesription(){
+        return description;
+    }
+    
+    public String getLocationsString(){
+        return locations;
+    }
 }

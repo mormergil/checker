@@ -92,7 +92,7 @@ public class checker extends javax.swing.JFrame {
             resultSet = helper.query(conn, "SELECT id FROM chk_locations ORDER BY id");
             while (resultSet.next()){
                 Location l = new Location(conn, resultSet.getInt("id"));
-                System.out.println(l.getName());
+                System.out.println(l.getName() + "  "+ l.getLocationsString());
             }
             
         } catch (SQLException e) {
