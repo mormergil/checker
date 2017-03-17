@@ -57,4 +57,15 @@ public class Helper {
         return null;
     }
     
+    public int update(Connection _conn, String _query){
+        int res;
+        try {
+            Statement stmt = _conn.createStatement();
+            res = stmt.executeUpdate(_query);
+            return res;
+          } catch (SQLException e) {
+            System.out.println(e);
+        }
+        return -1;
+    }
 }

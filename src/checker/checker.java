@@ -97,9 +97,20 @@ public class checker extends javax.swing.JFrame {
                 String[] gil = groupsInLocation.split(",");
                 for (int i=0; i<gil.length; i++){
                     String gid = gil[i];
-                    System.out.print(gid + " -> ");
+                    System.out.print(gid + " includes types -> ");
                     Group g = new Group(conn, Integer.parseInt(gid));
-                    System.out.println(g.getSensorsString());
+                    String [] sensorsInGroup = g.getSensorsString().split(",");
+                    for (int j=0; j<sensorsInGroup.length; j++){
+                        Sensor s = new Sensor();
+                        s.init(conn, Integer.parseInt(sensorsInGroup[j]));
+                        if (s.getTypeID() == 300){
+                            StringSensor sS = new StringSensor();
+                            sS.init(conn, s.getID());
+                            sS.doCompute(conn);
+                        }
+                        
+                    }
+                    System.out.println();
                 }
                 System.out.println();
             }
