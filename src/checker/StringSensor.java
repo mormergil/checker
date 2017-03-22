@@ -28,7 +28,7 @@ public class StringSensor extends Sensor{
         }
         
         query = "SELECT dimention, distance, angle, d_shift, system_status FROM strings WHERE dimention > '"+lastDimention+"' AND sensor_id='"+this.getID()+"'";
-        System.out.println(query);
+       // System.out.println(query);
         resultSet = helper.query(_conn, query);
         String insertQuery="INSERT INTO comp_strings(sensor_id, dimention, comp_distance, comp_angle, comp_shift, system_status) VALUES ";
         int newCounter=0;
@@ -53,7 +53,7 @@ public class StringSensor extends Sensor{
         insertQuery += "";
         if (newCounter>0){
             helper.update(_conn, insertQuery);
-            System.out.println(insertQuery);
+        //    System.out.println(insertQuery);
         }   
     }
 }

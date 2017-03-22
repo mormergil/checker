@@ -108,6 +108,11 @@ public class checker extends javax.swing.JFrame {
                             sS.init(conn, s.getID());
                             sS.doCompute(conn);
                         }
+                        if (s.getTypeID() == 200){
+                            CrackSensor cS = new CrackSensor();
+                            cS.init(conn, s.getID());
+                            cS.doCompute(conn);
+                        }
                         
                     }
                     System.out.println();
