@@ -47,7 +47,7 @@ public class CrackSensor extends Sensor{
         HashMap[] history;
 
         // Запросили кол-во нулевых значений для датчика
-        String query = "SELECT COUNT (dimention) AS cnt "
+        String query = "SELECT COUNT(dimention) AS cnt "
                        + "FROM cracks_history "
                       + "WHERE sensor_id='"+this.getID()+"'";
         ResultSet res = helper.query(_conn, query);
@@ -59,6 +59,8 @@ public class CrackSensor extends Sensor{
         } catch (SQLException e) {System.out.println(e);}
 
         history = new HashMap[historyCount];
+        history[0] = new HashMap();
+        history[0].put("dimention", 1);
         history[0].put("expantion", 0);
         history[0].put("real_expantion", 0);
         history[0].put("shift", 0);
@@ -72,6 +74,7 @@ public class CrackSensor extends Sensor{
         int i=0;
         try {
             while (res.next()){
+                if (i>0) {history[i]=new HashMap();}
                 history[i].replace("dimention", res.getInt("dimention") );
                 history[i].replace("expantion", res.getFloat("expantion") );
                 history[i].replace("real_expantion", res.getFloat("real_expantion") );
@@ -99,7 +102,7 @@ public class CrackSensor extends Sensor{
             System.out.println (e);
         }
         
-        String insertQuery="INSERT INTO comp_cracks(sensor_id, dimention, comp_expantion, comp_angle, comp_shift, system_status) VALUES ";
+        String insertQuery="INSERT INTO comp_cracks(sensor_id, dimention, comp_expantion, comp_angle, comp_shift, system_status_id) VALUES ";
         
         query = "SELECT * FROM cracks WHERE dimention > '"+lastDimention+"' AND sensor_id='"+this.getID()+"'";
         int newCounter=0;
@@ -118,6 +121,16 @@ public class CrackSensor extends Sensor{
                 insertQuery += "'"+resultSet.getString("shift")+"',";
                 insertQuery += "'"+resultSet.getString("system_status_id")+"'";
                 insertQuery += "),";
+//                System.out.println(newCounter+"  ");
+                if (newCounter > 1000){
+                    if (insertQuery.endsWith(",")){
+                        insertQuery = insertQuery.substring(0, insertQuery.length()-1);
+                    }
+                        helper.update(_conn, insertQuery);
+                    System.out.println(insertQuery);
+                    newCounter=0;
+                    insertQuery = "INSERT INTO comp_cracks(sensor_id, dimention, comp_expantion, comp_angle, comp_shift, system_status_id) VALUES ";
+                }
             }
         } catch (SQLException e){
             System.out.println (e);
@@ -126,9 +139,9 @@ public class CrackSensor extends Sensor{
         if (insertQuery.endsWith(",")){
             insertQuery = insertQuery.substring(0, insertQuery.length()-1);
         }
-        insertQuery += "";
+        //insertQuery += "";
         if (newCounter>0){
-        //    helper.update(_conn, insertQuery);
+            helper.update(_conn, insertQuery);
             System.out.println(insertQuery);
         }
     }
