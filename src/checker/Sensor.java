@@ -48,7 +48,7 @@ public class Sensor {
                 System.out.println(e);
             }
     }
-        
+    
     public String getName(){
         return name;
     }

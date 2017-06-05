@@ -86,7 +86,7 @@ public class CrackSensor extends Sensor{
         return history;
     }
     
-    public void doCompute(Connection _conn){
+    public void doCompute(Connection _conn, int _sensorsInLocation){
         
         HashMap[] history = this.getHistory(_conn);
                 
@@ -106,31 +106,39 @@ public class CrackSensor extends Sensor{
         
         query = "SELECT * FROM cracks WHERE dimention > '"+lastDimention+"' AND sensor_id='"+this.getID()+"'";
         int newCounter=0;
-        System.out.println(query);
+        //System.out.println(query);
         resultSet = helper.query(_conn, query);
         try {
             while (resultSet.next()){
-                newCounter++;
+                query = "SELECT count(sensor_id) AS cnt_s FROM strings WHERE dimention="+resultSet.getString("dimention")+"";
+                ResultSet rs = helper.query(_conn, query);
+                rs.next();
+                // Проверяем фактическое количество опрошенных датчиков.
+                // Если оно меньше количества датчиков на объекте, считаем что опрос ещё не завершён
+                // и обработку данных оставляем до следующего запуска
+                if (rs.getInt("cnt_s") == _sensorsInLocation){
+                    newCounter++;
                 
-                HashMap zeroData = getCorrect(history, resultSet.getInt("dimention") );
-                insertQuery += "(";
-                insertQuery += "'"+this.getID()+"',";
-                insertQuery += "'"+resultSet.getString("dimention")+"',";
-                insertQuery += "'"+(resultSet.getFloat("expantion") + Float.parseFloat(zeroData.get("real_expantion").toString()) - Float.parseFloat(zeroData.get("expantion").toString())) + "',";
-                insertQuery += "'"+resultSet.getString("angle")+"',";
-                insertQuery += "'"+resultSet.getString("shift")+"',";
-                insertQuery += "'"+resultSet.getString("system_status_id")+"'";
-                insertQuery += "),";
-//                System.out.println(newCounter+"  ");
-                if (newCounter > 1000){
-                    if (insertQuery.endsWith(",")){
-                        insertQuery = insertQuery.substring(0, insertQuery.length()-1);
-                    }
+                    HashMap zeroData = getCorrect(history, resultSet.getInt("dimention") );
+                    insertQuery += "(";
+                    insertQuery += "'"+this.getID()+"',";
+                    insertQuery += "'"+resultSet.getString("dimention")+"',";
+                    insertQuery += "'"+(resultSet.getFloat("expantion") + Float.parseFloat(zeroData.get("real_expantion").toString()) - Float.parseFloat(zeroData.get("expantion").toString())) + "',";
+                    insertQuery += "'"+resultSet.getString("angle")+"',";
+                    insertQuery += "'"+resultSet.getString("shift")+"',";
+                    insertQuery += "'"+resultSet.getString("system_status_id")+"'";
+                    insertQuery += "),";
+//                    System.out.println(newCounter+"  ");
+                    if (newCounter > 1000){
+                        if (insertQuery.endsWith(",")){
+                            insertQuery = insertQuery.substring(0, insertQuery.length()-1);
+                        }
                         helper.update(_conn, insertQuery);
-                    System.out.println(insertQuery);
-                    newCounter=0;
-                    insertQuery = "INSERT INTO comp_cracks(sensor_id, dimention, comp_expantion, comp_angle, comp_shift, system_status_id) VALUES ";
-                }
+                    //System.out.println(insertQuery);
+                        newCounter=0;
+                        insertQuery = "INSERT INTO comp_cracks(sensor_id, dimention, comp_expantion, comp_angle, comp_shift, system_status_id) VALUES ";
+                    }
+                }    
             }
         } catch (SQLException e){
             System.out.println (e);
@@ -142,7 +150,7 @@ public class CrackSensor extends Sensor{
         //insertQuery += "";
         if (newCounter>0){
             helper.update(_conn, insertQuery);
-            System.out.println(insertQuery);
+            //System.out.println(insertQuery);
         }
     }
 }

@@ -14,7 +14,7 @@ import java.sql.*;
 public class StringSensor extends Sensor{
     Helper helper = new Helper();
     
-    public void doCompute(Connection _conn){
+    public void doCompute(Connection _conn, int _sensorsInLocation){
         int lastDimention=0;
         String query="SELECT MAX(dimention) AS md FROM comp_strings WHERE sensor_id='"+this.getID()+"'";
         ResultSet resultSet = helper.query(_conn, query);
@@ -34,15 +34,25 @@ public class StringSensor extends Sensor{
         int newCounter=0;
         try {
             while (resultSet.next()){
-                newCounter++;
-                insertQuery += "(";
-                insertQuery += "'"+this.getID()+"',";
-                insertQuery += "'"+resultSet.getString("dimention")+"',";
-                insertQuery += "'"+resultSet.getString("distance")+"',";
-                insertQuery += "'"+resultSet.getString("angle")+"',";
-                insertQuery += "'"+resultSet.getString("d_shift")+"',";
-                insertQuery += "'"+resultSet.getString("system_status")+"'";
-                insertQuery += "),";
+                query = "SELECT count(sensor_id) AS cnt_s FROM strings WHERE dimention="+resultSet.getString("dimention")+"";
+                ResultSet rs = helper.query(_conn, query);
+                rs.next();
+                // Проверяем фактическое количество опрошенных датчиков.
+                // Если оно меньше количества датчиков на объекте, считаем что опрос ещё не завершён
+                // и обработку данных оставляем до следующего запуска
+                if (rs.getInt("cnt_s") == _sensorsInLocation){ 
+                    newCounter++;
+                    insertQuery += "(";
+                    insertQuery += "'"+this.getID()+"',";
+                    insertQuery += "'"+resultSet.getString("dimention")+"',";
+                    insertQuery += "'"+resultSet.getString("distance")+"',";
+                    insertQuery += "'"+resultSet.getString("angle")+"',";
+                    insertQuery += "'"+resultSet.getString("d_shift")+"',";
+                    insertQuery += "'"+resultSet.getString("system_status")+"'";
+                    insertQuery += "),";
+                } else {
+                    System.out.println("No enougth data!");
+                } 
             }
         } catch (SQLException e){
             System.out.println (e);

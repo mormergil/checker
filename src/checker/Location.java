@@ -16,7 +16,8 @@ public class Location {
     private int id;
     private String name="";
     private String description="";
-    private String locations="";
+    private String groups="";
+    private String sensors="";
     
     public Location(Connection _conn, int _id){
         Helper helper = new Helper();
@@ -39,14 +40,25 @@ public class Location {
         resultSet = helper.query(_conn, query);
         try {
             while (resultSet.next()){
-                locations = locations.concat(resultSet.getString("id_group"));
-                locations = locations.concat(",");
+                groups = groups.concat(resultSet.getString("id_group"));
+                groups = groups.concat(",");
             }
-            if (locations.length()>1) {locations = locations.substring(0, locations.length()-1);}
+            if (groups.length()>1) {groups = groups.substring(0, groups.length()-1);}
         } catch (SQLException e) {
                 System.out.println(e);
-        }    
+        }
         
+        query = "SELECT sensor_id FROM `sensors` WHERE sensors.ID_GROUP in (select id_group from chk_locations_groups where id_location = '"+ _id +"')";
+        resultSet = helper.query(_conn, query);
+        try {
+            while (resultSet.next()){
+                sensors = sensors.concat(resultSet.getString("sensor_id"));
+                sensors = sensors.concat(",");
+            }
+            if (sensors.length()>1) {sensors = sensors.substring(0, sensors.length()-1);}
+        } catch (SQLException e) {
+                System.out.println(e);
+        }
     }
     
     public String getName(){
@@ -57,7 +69,20 @@ public class Location {
         return description;
     }
     
-    public String getLocationsString(){
-        return locations;
+    public String getGroupsString(){
+        return groups;
     }
+    
+    public String getSensorsString(){
+        return sensors;
+    }
+    
+    public int getSensorCount(){
+        int result=0;
+        
+        result = this.sensors.split(",").length;
+        
+        return result;
+    }
+    
 }
