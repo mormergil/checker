@@ -22,6 +22,64 @@ public class checker extends javax.swing.JFrame {
     static Statement stmt;
     static ResultSet resultSet;
     
+    boolean wasStarted=false;
+    
+    class AppThread extends Thread {
+      
+        public AppThread() {
+        }
+      
+        public void run() {
+            wasStarted=true;
+            
+            conn = helper.createDBConnect("localhost", "family", "family", "sysmon");
+
+            try {
+                resultSet = helper.query(conn, "SELECT id FROM chk_locations ORDER BY id");
+                while (resultSet.next()){
+                    Location l = new Location(conn, resultSet.getInt("id"));
+                    System.out.println(l.getName());
+
+                    String sensorsInLocation = l.getSensorsString();
+                    int locationSensorCount = l.getSensorCount();
+
+                    String[] sil = sensorsInLocation.split(",");
+                    for (int i=0; i<sil.length; i++){
+                        int sid = Integer.parseInt(sil[i]);
+                        Sensor s = new Sensor();
+                        s.init(conn, sid);
+                        System.out.println(sid + " is " + s.getDescription());
+
+                        if (s.getTypeID() == 300){
+                            SensorString sS = new SensorString();
+                            sS.init(conn, s.getID());
+                            sS.doCompute(conn, locationSensorCount);
+                        }
+
+                        if (s.getTypeID() == 200){
+                            SensorCrack sC = new SensorCrack();
+                            sC.init(conn, s.getID());
+                            sC.doCompute(conn, locationSensorCount);
+                        }
+
+                        if (s.getTypeID() == 100){
+                            SensorNivelir sN = new SensorNivelir();
+                            sN.init(conn, s.getID());
+                            sN.doCompute(conn, locationSensorCount);
+                        }
+                        //System.out.println();
+                    }
+                    System.out.println();
+                }
+
+            } catch (SQLException e) {
+                System.out.println(e);
+            }
+            
+            wasStarted = false;
+            System.out.println("Цикл завершён");
+        }
+}
     
     class doTask extends TimerTask {
     @Override
@@ -30,6 +88,11 @@ public class checker extends javax.swing.JFrame {
         String time = timeSegments[0]+":"+timeSegments[1]+":"+timeSegments[2];
         
         jLabel7.setText(time);
+        
+        if (!wasStarted) {
+            Thread t = new Thread(new AppThread());
+            t.start();
+        }
     }
 }
     
@@ -187,46 +250,7 @@ public class checker extends javax.swing.JFrame {
             new checker().setVisible(true);
         });
         
-        //conn = helper.createDBConnect("localhost", "family", "family", "sysmon");
         
-        /*try {
-            resultSet = helper.query(conn, "SELECT id FROM chk_locations ORDER BY id");
-            while (resultSet.next()){
-                Location l = new Location(conn, resultSet.getInt("id"));
-                System.out.println(l.getName());
-                
-                String sensorsInLocation = l.getSensorsString();
-                int locationSensorCount = l.getSensorCount();
-                
-                String[] sil = sensorsInLocation.split(",");
-                for (int i=0; i<sil.length; i++){
-                    int sid = Integer.parseInt(sil[i]);
-                    Sensor s = new Sensor();
-                    s.init(conn, sid);
-                    System.out.println(sid + " is " + s.getDescription());
-                    
-                    if (s.getTypeID() == 300){
-                        StringSensor sS = new StringSensor();
-                        sS.init(conn, s.getID());
-                        sS.doCompute(conn, locationSensorCount);
-                    }
-                    
-                    if (s.getTypeID() == 200){
-                        CrackSensor cS = new CrackSensor();
-                        cS.init(conn, s.getID());
-                        cS.doCompute(conn, locationSensorCount);
-                    }
-                        
-                    //System.out.println();
-                }
-                System.out.println();
-            }
-            
-        } catch (SQLException e) {
-            System.out.println(e);
-        }
-        
-        */
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

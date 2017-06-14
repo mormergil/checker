@@ -11,7 +11,7 @@ package checker;
  */
 import java.sql.*;
 
-public class StringSensor extends Sensor{
+public class SensorString extends Sensor{
     Helper helper = new Helper();
     
     public void doCompute(Connection _conn, int _sensorsInLocation){
