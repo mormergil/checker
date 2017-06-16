@@ -32,14 +32,13 @@ public class Helper {
         return conn;
     }
     
-    
     public void closeDBConnect(Connection conn){
         try {
             if (conn != null) {
                 try {
                     conn.close ();
                 }
-                catch (Exception e) { }
+                catch (Exception e) {System.out.println ("Error while closing connection "+e); }
             }
         }
         catch (Exception e) { }
@@ -67,5 +66,22 @@ public class Helper {
             System.out.println(e);
         }
         return -1;
+    }
+    
+    public String trim(String _str, String t){
+        String res="";
+        if (_str.endsWith(t)){
+            res = _str.substring(0, _str.length()-1);
+        }
+        return res;
+    }
+    
+    public StringBuilder trim(StringBuilder _str, String t){
+        StringBuilder res = new StringBuilder("");
+        if (_str.lastIndexOf(t) == _str.length()-1){
+                _str.deleteCharAt(_str.length()-1);
+                res = _str;
+            }
+        return res;
     }
 }

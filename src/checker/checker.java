@@ -8,6 +8,10 @@ package checker;
 import java.sql.*;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.SpinnerModel;
+import javax.swing.SpinnerNumberModel;
 /**
  *
  * @author Draug
@@ -21,6 +25,8 @@ public class checker extends javax.swing.JFrame {
     static Connection conn;
     static Statement stmt;
     static ResultSet resultSet;
+    
+    int seconds = 0;
     
     boolean wasStarted=false;
     
@@ -38,7 +44,7 @@ public class checker extends javax.swing.JFrame {
                 resultSet = helper.query(conn, "SELECT id FROM chk_locations ORDER BY id");
                 while (resultSet.next()){
                     Location l = new Location(conn, resultSet.getInt("id"));
-                    System.out.println(l.getName());
+                    labelBlockName.setText(l.getName());
 
                     String sensorsInLocation = l.getSensorsString();
                     int locationSensorCount = l.getSensorCount();
@@ -48,28 +54,31 @@ public class checker extends javax.swing.JFrame {
                         int sid = Integer.parseInt(sil[i]);
                         Sensor s = new Sensor();
                         s.init(conn, sid);
-                        System.out.println(sid + " is " + s.getDescription());
+                        labelSensorDescr.setText(s.getDescription());
 
                         if (s.getTypeID() == 300){
                             SensorString sS = new SensorString();
                             sS.init(conn, s.getID());
                             sS.doCompute(conn, locationSensorCount);
+                            sS = null;
                         }
 
                         if (s.getTypeID() == 200){
                             SensorCrack sC = new SensorCrack();
                             sC.init(conn, s.getID());
                             sC.doCompute(conn, locationSensorCount);
+                            sC = null;
                         }
 
                         if (s.getTypeID() == 100){
                             SensorNivelir sN = new SensorNivelir();
                             sN.init(conn, s.getID());
                             sN.doCompute(conn, locationSensorCount);
+                            sN = null;
                         }
                         //System.out.println();
                     }
-                    System.out.println();
+                    //System.out.println();
                 }
 
             } catch (SQLException e) {
@@ -78,6 +87,10 @@ public class checker extends javax.swing.JFrame {
             
             wasStarted = false;
             System.out.println("Цикл завершён");
+            seconds = Integer.parseInt(jSpinner1.getValue().toString())*60;
+            labelBlockName.setText("не запущено");
+            helper.closeDBConnect(conn);
+            System.gc();
         }
 }
     
@@ -86,11 +99,18 @@ public class checker extends javax.swing.JFrame {
     public void run() {
         String[] timeSegments = new Time(new java.util.Date().getTime()).toString().split(":");
         String time = timeSegments[0]+":"+timeSegments[1]+":"+timeSegments[2];
+        labelCurrentTime.setText(time);
         
-        jLabel7.setText(time);
+        if (!wasStarted){
+            seconds -= 1;
+            int m = seconds/60;
+            int s = seconds - (m*60);
+            labelMinutesLeft.setText(m+":"+s);
+        }    
         
-        if (!wasStarted) {
+        if ((seconds<1)&&(!wasStarted)) {
             Thread t = new Thread(new AppThread());
+            labelLastStart.setText(time);
             t.start();
         }
     }
@@ -104,6 +124,8 @@ public class checker extends javax.swing.JFrame {
         
         Timer timer = new Timer();
         timer.schedule(new doTask(), 0, 1000); // ставим по расписанию выполнять каждую секунду
+        
+        seconds = Integer.parseInt(jSpinner1.getValue().toString())*60-55;
     }
 
     /**
@@ -117,19 +139,28 @@ public class checker extends javax.swing.JFrame {
 
         jTabbedPane2 = new javax.swing.JTabbedPane();
         jPanel1 = new javax.swing.JPanel();
-        jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
+        labelCurrentTime = new javax.swing.JLabel();
+        labelMinutesLeft = new javax.swing.JLabel();
+        jSeparator1 = new javax.swing.JSeparator();
+        jLabel2 = new javax.swing.JLabel();
+        labelBlockName = new javax.swing.JLabel();
         jLabel7 = new javax.swing.JLabel();
+        labelSensorDescr = new javax.swing.JLabel();
+        jLabel9 = new javax.swing.JLabel();
+        labelLastStart = new javax.swing.JLabel();
         jPanel3 = new javax.swing.JPanel();
+        jLabel1 = new javax.swing.JLabel();
+        jLabel8 = new javax.swing.JLabel();
+        SpinnerModel numbers = new SpinnerNumberModel(1, 1, 180, 1);
+        jSpinner1 = new javax.swing.JSpinner(numbers);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        jLabel2.setText("Пред. проверка");
-
-        jLabel3.setText("Следующая проверка");
+        jLabel3.setText("До следующего запуска");
 
         jLabel4.setText("Отправка СМС");
 
@@ -137,42 +168,95 @@ public class checker extends javax.swing.JFrame {
 
         jLabel6.setText("Текущее время");
 
-        jLabel7.setFont(new java.awt.Font("Arial Black", 1, 14)); // NOI18N
-        jLabel7.setText("00:00:00");
+        labelCurrentTime.setFont(new java.awt.Font("Arial Black", 1, 14)); // NOI18N
+        labelCurrentTime.setText("00:00:00");
+
+        labelMinutesLeft.setFont(new java.awt.Font("Arial Black", 1, 14)); // NOI18N
+        labelMinutesLeft.setText("120");
+
+        jLabel2.setText("Обрабатывается блок");
+
+        labelBlockName.setFont(new java.awt.Font("Arial Black", 0, 14)); // NOI18N
+        labelBlockName.setText("не запущено");
+
+        jLabel7.setText("Обрабатывается датчик");
+
+        labelSensorDescr.setFont(new java.awt.Font("Arial Black", 0, 14)); // NOI18N
+        labelSensorDescr.setText("нет данных");
+
+        jLabel9.setText("Предыдущий запуск был в");
+
+        labelLastStart.setFont(new java.awt.Font("Arial Black", 0, 14)); // NOI18N
+        labelLastStart.setText("нет данных");
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
+                .addComponent(jLabel9)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(labelLastStart)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(labelCurrentTime, javax.swing.GroupLayout.PREFERRED_SIZE, 78, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(10, 10, 10))
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel2)
+                            .addComponent(jLabel7))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(labelSensorDescr)
+                            .addComponent(labelBlockName))
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(10, 10, 10)
+                        .addComponent(jLabel3)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(labelMinutesLeft)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(jLabel6)))
+                .addContainerGap())
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(10, 10, 10)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addComponent(jLabel4)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 96, Short.MAX_VALUE)
                         .addComponent(jLabel5)
                         .addGap(127, 127, 127))
                     .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(jLabel3)
-                        .addGap(55, 55, 55)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addContainerGap(11, Short.MAX_VALUE))))
+                        .addComponent(jSeparator1)
+                        .addContainerGap())))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel3)
-                    .addComponent(jLabel6))
-                .addGap(18, 18, 18)
-                .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 136, Short.MAX_VALUE)
+                    .addComponent(jLabel6)
+                    .addComponent(labelMinutesLeft))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(labelCurrentTime, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel9)
+                    .addComponent(labelLastStart))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel2)
+                    .addComponent(labelBlockName))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel7)
+                    .addComponent(labelSensorDescr))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 96, Short.MAX_VALUE)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel4)
                     .addComponent(jLabel5))
@@ -181,15 +265,32 @@ public class checker extends javax.swing.JFrame {
 
         jTabbedPane2.addTab("Работа", jPanel1);
 
+        jLabel1.setText("Проверка каждые ");
+
+        jLabel8.setText("минут");
+
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 375, Short.MAX_VALUE)
+            .addGroup(jPanel3Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel1)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jSpinner1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(7, 7, 7)
+                .addComponent(jLabel8)
+                .addContainerGap(213, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 250, Short.MAX_VALUE)
+            .addGroup(jPanel3Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel1)
+                    .addComponent(jLabel8)
+                    .addComponent(jSpinner1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(219, Short.MAX_VALUE))
         );
 
         jTabbedPane2.addTab("Настройка", jPanel3);
@@ -254,14 +355,24 @@ public class checker extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel9;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel3;
+    private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JSpinner jSpinner1;
     private javax.swing.JTabbedPane jTabbedPane2;
+    private javax.swing.JLabel labelBlockName;
+    private javax.swing.JLabel labelCurrentTime;
+    private javax.swing.JLabel labelLastStart;
+    private javax.swing.JLabel labelMinutesLeft;
+    private javax.swing.JLabel labelSensorDescr;
     // End of variables declaration//GEN-END:variables
 }

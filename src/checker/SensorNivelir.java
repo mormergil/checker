@@ -85,7 +85,6 @@ public class SensorNivelir extends Sensor{
                         "WHERE incline.dimention in ("+_neededDimentions+") "+
                                "AND sensor_id='"+_baseSensorID+"' "+
                         "ORDER BY incline.dimention ASC";
-
         ResultSet res = helper.query(_conn, query);
         // Формируем двумерный массив из данных
         int i=0;
@@ -131,7 +130,7 @@ public class SensorNivelir extends Sensor{
     public void doCompute(Connection _conn, int _sensorsInLocation){
         
         int lastDimention=0;
-        String neededDimentions="0,";
+        StringBuilder neededDimentions = new StringBuilder("0,");
     // Если выбран блок С тогда при построении каждого графика мы должны вычитать показания 18-го датчика.
     // Иначе говоря, сначала мы рассчитываем показания каждого датчика как рассчитывали раньше, а потом
     // из уже рассчитанных показаний вычитаем точно так же расчитанные показания 18-го датчика.
@@ -157,7 +156,7 @@ public class SensorNivelir extends Sensor{
         try {
             if (res.next()){
                 lastDimention = res.getInt("md");
-                System.out.println("LastDimention is " +lastDimention);
+                //System.out.println("LastDimention is " +lastDimention);
             }
         } catch (SQLException e){
             System.out.println ("6"+e);
@@ -173,15 +172,13 @@ public class SensorNivelir extends Sensor{
         res = helper.query(_conn, query);
         try {
             while (res.next()){
-                neededDimentions = neededDimentions.concat(res.getString("dimention")+",");
-            }
-            if (neededDimentions.endsWith(",")){
-                neededDimentions = neededDimentions.substring(0, neededDimentions.length()-1);
+                neededDimentions.append(res.getString("dimention")).append(",");
             }
         } catch (SQLException e){
             System.out.println("7"+e);
         }
-        
+
+        neededDimentions = helper.trim(neededDimentions, ",");
         // Потом из только что выбранных выбираем те, у которых доверенные показания по опорному датчику
         query="SELECT dimention " +
                 "FROM incline " +
@@ -189,19 +186,16 @@ public class SensorNivelir extends Sensor{
                  "AND sensor_id = '"+this.baseSensorID+"' " +
                  "AND dimention in ("+neededDimentions+")";
     
-        neededDimentions="0,";
+        neededDimentions = new StringBuilder("0,");
         res = helper.query(_conn, query);
         try {
             while (res.next()){
-                neededDimentions = neededDimentions.concat(res.getString("dimention")+",");
-            }
-            if (neededDimentions.endsWith(",")){
-                neededDimentions = neededDimentions.substring(0, neededDimentions.length()-1);
+                neededDimentions.append(res.getString("dimention")).append(",");
             }
         } catch (SQLException e){
             System.out.println("8"+e);
         }
-
+        neededDimentions = helper.trim(neededDimentions, ",");
     // А сейчас всё тот же первый костыль! Если датчик из прилагаемого списка -
     // тогда нужно проверить наличие показаний и для вычитаемого датчика
         
@@ -217,26 +211,24 @@ public class SensorNivelir extends Sensor{
                      "AND sensor_id = '"+additionalSensor+"' AND dimention in ("+neededDimentions+")";
             //System.out.println(query);
             res = helper.query(_conn, query);
-            neededDimentions="0,";
+            neededDimentions = new StringBuilder("0,");
             try {
                 while (res.next()){ 
-                    neededDimentions = neededDimentions.concat(res.getString("dimention")+",");
-                }
-                if (neededDimentions.endsWith(",")){
-                    neededDimentions = neededDimentions.substring(0, neededDimentions.length()-1);
+                    neededDimentions.append(res.getString("dimention")).append(",");
                 }
             } catch (SQLException e){
                 System.out.println("9"+e);
             }
+            neededDimentions = helper.trim(neededDimentions, ",");
         }
-        //System.out.println(neededDimentions);
+        
         if (!neededDimentions.equals("0")) {
-            HashMap[] data=getSensorData(_conn, this.getID(), this.baseSensorID, this.baseZeroVal, this.ownZeroVal, neededDimentions);
+            HashMap[] data=getSensorData(_conn, this.getID(), this.baseSensorID, this.baseZeroVal, this.ownZeroVal, neededDimentions.toString());
 
             // И снова первый костыль! Если датчик из списка (где-то в начале объявлен массив),
             // То тогда из него всё-таки нужно вычитать показания 18 датчика, а для этого их надо получить
             if (kostil){
-                HashMap[] tmp_data=getSensorData(_conn, additionalSensor, this.a_baseSensorID, this.a_baseZeroVal, this.a_ownZeroVal, neededDimentions);
+                HashMap[] tmp_data=getSensorData(_conn, additionalSensor, this.a_baseSensorID, this.a_baseZeroVal, this.a_ownZeroVal, neededDimentions.toString());
 
                 for (int i=0; i<tmp_data.length-1; i++) {
                     data[i].replace("value", Float.parseFloat(data[i].get("value").toString()) - Float.parseFloat(tmp_data[i].get("value").toString()) );
@@ -244,49 +236,51 @@ public class SensorNivelir extends Sensor{
             }
             // вроде как костыль закончился
 
-            String insertQuery="INSERT INTO comp_nivelir(sensor_id, dimention, comp_x, system_status_id, alarm_id) VALUES ";
+            StringBuilder insertQuery = new StringBuilder ("INSERT INTO comp_nivelir(sensor_id, dimention, comp_x, system_status_id, alarm_id) VALUES ");
 
             int newCounter=0;
             for (int i=0; i<data.length-1; i++) {
-                System.out.println("Sensor: "+this.getID()+" dimention: "+data[i].get("dimention")+" (i="+i+")" );
-                query = "SELECT count(sensor_id) AS cnt_s FROM incline WHERE dimention="+data[i].get("dimention").toString()+"";
-                System.out.println();
-                ResultSet rs = helper.query(_conn, query);
-                try {
-                    rs.next();
-                    if (rs.getInt("cnt_s") == _sensorsInLocation){
+                //System.out.println("Sensor: "+this.getID()+" dimention: "+data[i].get("dimention")+" (i="+i+")" );
+               // query = "SELECT count(sensor_id) AS cnt_s FROM incline WHERE dimention="+data[i].get("dimention").toString()+"";
+                //System.out.println();
+              //  ResultSet rs = helper.query(_conn, query);
+              //  try {
+              //      rs.next();
+             //       if (rs.getInt("cnt_s") == _sensorsInLocation){
                         newCounter++;
-                        insertQuery = insertQuery.concat("('"+this.getID()+"', ");
-                        insertQuery = insertQuery.concat("'"+data[i].get("dimention")+"', ");
-                        insertQuery = insertQuery.concat("'"+data[i].get("value")+"', ");
-                        insertQuery = insertQuery.concat("'1', '1' ),");
+                        insertQuery.append("('").append(this.getID()).append("', ");
+                        insertQuery.append("'").append(data[i].get("dimention")).append("', ");
+                        insertQuery.append("'").append(data[i].get("value")).append("', ");
+                        insertQuery.append("'1', '1' ),");
 
                         if (newCounter > 1000){
-                            if (insertQuery.endsWith(",")){
-                                insertQuery = insertQuery.substring(0, insertQuery.length()-1);
-                            }
-                            helper.update(_conn, insertQuery);
-                            //System.out.println(insertQuery);
+                            insertQuery = helper.trim(insertQuery, ",");
+                            helper.update(_conn, insertQuery.toString());
+                    //System.out.println(insertQuery);
                             newCounter=0;
-                                insertQuery = "INSERT INTO comp_nivelir(sensor_id, dimention, comp_x, system_status_id, alarm_id) VALUES ";
+                            insertQuery = new StringBuilder("INSERT INTO comp_nivelir(sensor_id, dimention, comp_x, system_status_id, alarm_id) VALUES ");
                         }
 
-                    } else {
-                        System.out.println(" No enougth data");
-                    }    
-                } catch (SQLException e) {
-                    System.out.println("10"+e);
-                }       
+              //      } else {
+              //          System.out.println(" No enougth data");
+              //      }    
+              //  } catch (SQLException e) {
+              //      System.out.println("10"+e);
+              //  }       
             }
 
-            if (insertQuery.endsWith(",")){
-                insertQuery = insertQuery.substring(0, insertQuery.length()-1);
-            }
-
+            insertQuery = helper.trim(insertQuery, ",");
+            //insertQuery += "";
             if (newCounter>0){
-                helper.update(_conn, insertQuery);
+                helper.update(_conn, insertQuery.toString());
                 //System.out.println(insertQuery);
             }
+            tmp.clear();
+            for (int i=0; i<data.length-1; i++){
+                data[i].clear();
+            }
+            data = null;
+            System.gc();
         }    
     }
 }

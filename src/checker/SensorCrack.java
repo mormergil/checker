@@ -94,18 +94,18 @@ public class SensorCrack extends Sensor{
                 
         int lastDimention=0;
         String query="SELECT MAX(dimention) AS md FROM comp_cracks WHERE sensor_id='"+this.getID()+"'";
-        System.out.println (query);
+        //System.out.println (query);
         ResultSet resultSet = helper.query(_conn, query);
         try {
             if (resultSet.next()){
                 lastDimention = resultSet.getInt("md");
-                System.out.println("Last dimention is: "+lastDimention);
+                //System.out.println("Last dimention is: "+lastDimention);
             }
         } catch (SQLException e){
             System.out.println (e);
         }
         
-        String insertQuery="INSERT INTO comp_cracks(sensor_id, dimention, comp_expantion, comp_angle, comp_shift, system_status_id) VALUES ";
+        StringBuilder insertQuery = new StringBuilder("INSERT INTO comp_cracks(sensor_id, dimention, comp_expantion, comp_angle, comp_shift, system_status_id) VALUES ");
         
         query = "SELECT * FROM cracks WHERE dimention > '"+lastDimention+"' AND sensor_id='"+this.getID()+"'";
         int newCounter=0;
@@ -113,50 +113,39 @@ public class SensorCrack extends Sensor{
         resultSet = helper.query(_conn, query);
         try {
             while (resultSet.next()){
-                query = "SELECT count(sensor_id) AS cnt_s FROM cracks WHERE dimention="+resultSet.getString("dimention")+"";
-                //System.out.println (query);
-                ResultSet rs = helper.query(_conn, query);
-                rs.next();
-                // Проверяем фактическое количество опрошенных датчиков.
-                // Если оно меньше количества датчиков на объекте, считаем что опрос ещё не завершён
-                // и обработку данных оставляем до следующего запуска
-                if (rs.getInt("cnt_s") == _sensorsInLocation){
+                // Не проверяем фактическое количество опрошенных датчиков.
                     newCounter++;
 
                     HashMap zeroData = getCorrect(history, resultSet.getInt("dimention") );
-                    insertQuery += "(";
-                    insertQuery += "'"+this.getID()+"',";
-                    insertQuery += "'"+resultSet.getString("dimention")+"',";
-                    insertQuery += "'"+(resultSet.getFloat("expantion") + Float.parseFloat(zeroData.get("real_expantion").toString()) - Float.parseFloat(zeroData.get("expantion").toString())) + "',";
-                    insertQuery += "'"+resultSet.getString("angle")+"',";
-                    insertQuery += "'"+resultSet.getString("shift")+"',";
-                    insertQuery += "'"+resultSet.getString("system_status_id")+"'";
-                    insertQuery += "),";
+                    insertQuery.append("(");
+                    insertQuery.append("'").append(this.getID()).append("',");
+                    insertQuery.append("'").append(resultSet.getString("dimention")).append("',");
+                    insertQuery.append("'").append(resultSet.getFloat("expantion") + Float.parseFloat(zeroData.get("real_expantion").toString()) - Float.parseFloat(zeroData.get("expantion").toString())).append("',");
+                    insertQuery.append("'").append(resultSet.getString("angle")).append("',");
+                    insertQuery.append("'").append(resultSet.getString("shift")).append("',");
+                    insertQuery.append("'").append(resultSet.getString("system_status_id")).append("'");
+                    insertQuery.append("),"); 
 //                    System.out.println(newCounter+"  ");
                     if (newCounter > 1000){
-                        if (insertQuery.endsWith(",")){
-                            insertQuery = insertQuery.substring(0, insertQuery.length()-1);
-                        }
-                        helper.update(_conn, insertQuery);
+                        insertQuery = helper.trim(insertQuery, ",");
+                        helper.update(_conn, insertQuery.toString());
                     //System.out.println(insertQuery);
                         newCounter=0;
-                        insertQuery = "INSERT INTO comp_cracks(sensor_id, dimention, comp_expantion, comp_angle, comp_shift, system_status_id) VALUES ";
+                        insertQuery = new StringBuilder("INSERT INTO comp_cracks(sensor_id, dimention, comp_expantion, comp_angle, comp_shift, system_status_id) VALUES ");
                     }
-                } else {
-                    System.out.println (_sensorsInLocation+" Not enought data! (should be "+rs.getInt("cnt_s")+")");
-                }    
             }
         } catch (SQLException e){
             System.out.println (e);
         }
         
-        if (insertQuery.endsWith(",")){
-            insertQuery = insertQuery.substring(0, insertQuery.length()-1);
+        if (insertQuery.lastIndexOf(",") == insertQuery.length()-1){
+            insertQuery.deleteCharAt(insertQuery.length()-1);
         }
         //insertQuery += "";
         if (newCounter>0){
-            helper.update(_conn, insertQuery);
+            helper.update(_conn, insertQuery.toString());
             //System.out.println(insertQuery);
         }
+        System.gc();
     }
 }
