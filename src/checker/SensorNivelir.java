@@ -28,15 +28,51 @@ public class SensorNivelir extends Sensor{
     private float a_baseZeroVal;
     private float a_ownZeroVal;
     
+    private float[][] initCorrect(Connection _conn, int _sID){
+        float [][] corrects = new float[0][0];
+        
+        StringBuilder query = new StringBuilder("SELECT count(sensor_id) AS cnt FROM corrects WHERE sensor_id='").append(_sID).append("'");
+        ResultSet res = helper.query(_conn, query.toString());
+        try {
+            if (res.next()){
+                corrects = new float[res.getInt("cnt")][2];
+                query = new StringBuilder("SELECT * FROM corrects WHERE sensor_id='").append(_sID).append("' ORDER BY dimention ASC");
+                res = helper.query(_conn, query.toString());
+                int i=0;
+                while (res.next()){
+                    corrects[i][0]=res.getInt("dimention");
+                    corrects[i][1]=res.getFloat("volume");
+                }
+            } 
+        } catch (SQLException e){
+            System.out.println(e);
+        }
+        
+        return corrects;        
+    }
+    
+    private float getCorrect(float[][] corrects, int _dID){
+        float correct=0;
+        
+        //Правки и корректировки
+        for (int i=0; i<corrects.length-1; i++){
+                if (_dID >= corrects[i][0]){
+                    correct=corrects[i][1];
+                }
+            }
+        return correct;
+    }
+    
     private HashMap additionalInit(Connection _conn, int sID){
         // Инициализация сведений, нужных только инклинометрам
-        HashMap data = new HashMap();       
+        HashMap data = new HashMap<String, Float>();       
         Sensor s = new Sensor();
         s.init(_conn, sID);
         
         // Опорный датчик в группе, опорное измерение
-        String query = "SELECT base_sensor, base_dim FROM sensor_groups WHERE ID='"+s.getGroupID()+"'";
-        ResultSet res = helper.query(_conn, query);
+        StringBuilder query = new StringBuilder();
+        query.append("SELECT base_sensor, base_dim FROM sensor_groups WHERE ID='").append(s.getGroupID()).append("'");
+        ResultSet res = helper.query(_conn, query.toString());
         try {
             if (res.next()){
                 data.put("baseSensorID", res.getInt("base_sensor"));
@@ -47,8 +83,9 @@ public class SensorNivelir extends Sensor{
         }
         
         //сырые показания опорного датчика в опорное измерение
-        query = "SELECT x FROM incline WHERE dimention='"+data.get("baseDimID")+"' AND sensor_id='"+data.get("baseSensorID")+"'";
-        res = helper.query(_conn, query);
+        query.delete(0, query.length());
+        query.append("SELECT x FROM incline WHERE dimention='").append(data.get("baseDimID")).append("' AND sensor_id='").append(data.get("baseSensorID")).append("'");
+        res = helper.query(_conn, query.toString());
         try {
             if (res.next()){
                 data.put("baseZeroVal", res.getFloat("x"));
@@ -58,8 +95,9 @@ public class SensorNivelir extends Sensor{
         }
         
         //сырые показания этого датчика в опорное измерение
-        query = "SELECT x FROM incline WHERE dimention='"+data.get("baseDimID")+"' AND sensor_id='"+sID+"'";
-        res = helper.query(_conn, query);
+        query.delete(0, query.length());
+        StringBuilder append = query.append("SELECT x FROM incline WHERE dimention='"+data.get("baseDimID")+"' AND sensor_id='"+sID+"'");
+        res = helper.query(_conn, query.toString());
         try {
             if (res.next()){
                 data.put("ownZeroVal", res.getFloat("x"));
@@ -78,22 +116,24 @@ public class SensorNivelir extends Sensor{
     // потои и отображается на графике
         int count = _neededDimentions.split(",").length;
         HashMap [] data = new HashMap[count]; 
-
+        StringBuilder query = new StringBuilder();
         // Запросили значения опорного датчика для интервала
-        String query = "SELECT x AS val, dimention " +
-                         "FROM incline "+
-                        "WHERE incline.dimention in ("+_neededDimentions+") "+
-                               "AND sensor_id='"+_baseSensorID+"' "+
-                        "ORDER BY incline.dimention ASC";
-        ResultSet res = helper.query(_conn, query);
+        query.append("SELECT x AS val, dimention ");
+        query.append("FROM incline ");
+        query.append("WHERE incline.dimention in (").append(_neededDimentions).append(") AND sensor_id='").append(_baseSensorID).append("' ");
+        query.append("ORDER BY incline.dimention ASC");
+        ResultSet res = helper.query(_conn, query.toString());
         // Формируем двумерный массив из данных
         int i=0;
 // по первой - просто нумерация, а по второй - в нулевой ячейке хранятся номера измерений, в первой - значения
+        float [][] c = this.initCorrect(_conn, _baseSensorID);
         try{
+            
             while (res.next()) {
-                data[i] = new HashMap();
+                data[i] = new HashMap<String, Float>();
                 data[i].put("dimention", res.getInt("dimention"));
-                data[i].put("value", res.getFloat("val"));
+                data[i].put("value", res.getFloat("val")+this.getCorrect(c, res.getInt("dimention")));
+                System.out.println("Base sensor "+_baseSensorID+" Added "+this.getCorrect(c, res.getInt("dimention")) );
 ///Эот важно!        
 //                $data['y'][$i] += $sensClass->getCorrect($row['dimention']);
                 i++;
@@ -103,17 +143,18 @@ public class SensorNivelir extends Sensor{
         }
 
         // запросили текущие значения датчика и его "нулевые" значения, а также номера дименшенов
-        query = "SELECT x AS val, dimention " +
-                  "FROM incline " +
-                 "WHERE incline.dimention IN ("+_neededDimentions+") " +
-                      " AND sensor_id='"+_sensorID+"' " +
-                "ORDER BY incline.dimention ASC";
+        query.delete(0,query.length());
+        query.append("SELECT x AS val, dimention FROM incline ");
+        query.append("WHERE incline.dimention IN (").append(_neededDimentions).append(")  AND sensor_id='").append(_sensorID).append("' ");
+        query.append("ORDER BY incline.dimention ASC");
 
-        res = helper.query(_conn, query);
+        res = helper.query(_conn, query.toString());
         i=0; // Продолжаем формирование массива
+        c = this.initCorrect(_conn, _sensorID);
         try {
             while (res.next()){
-                data[i].replace("value", Float.parseFloat(data[i].get("value").toString())-res.getFloat("val") - (_baseZeroVal - _ownZeroVal) );
+                data[i].replace("value", Float.parseFloat(data[i].get("value").toString())-res.getFloat("val") - (_baseZeroVal - _ownZeroVal) - this.getCorrect(c, res.getInt("dimention")) );
+                System.out.println("Current sensor "+_sensorID+" substracted "+this.getCorrect(c, res.getInt("dimention")) );
 ///
 // Наверное, это тоже важно
 ///
@@ -145,14 +186,14 @@ public class SensorNivelir extends Sensor{
         this.ownZeroVal = Float.parseFloat(tmp.get("ownZeroVal").toString());
         
         //И, на всякий случай, для того самого костыльного
-        tmp = this.additionalInit(_conn, this.getID());
+        tmp = this.additionalInit(_conn, additionalSensor);
         this.a_baseDimID = Integer.parseInt(tmp.get("baseDimID").toString());
         this.a_baseSensorID = Integer.parseInt(tmp.get("baseSensorID").toString());
         this.a_baseZeroVal = Float.parseFloat(tmp.get("baseZeroVal").toString());
         this.a_ownZeroVal = Float.parseFloat(tmp.get("ownZeroVal").toString());
                 
-        String query="SELECT MAX(dimention) AS md FROM comp_nivelir WHERE sensor_id='"+this.getID()+"'";
-        ResultSet res = helper.query(_conn, query);
+        StringBuilder query = new StringBuilder("SELECT MAX(dimention) AS md FROM comp_nivelir WHERE sensor_id='"+this.getID()+"'");
+        ResultSet res = helper.query(_conn, query.toString());
         try {
             if (res.next()){
                 lastDimention = res.getInt("md");
@@ -164,12 +205,12 @@ public class SensorNivelir extends Sensor{
         
         // Определяем какие дименшены нам нужны - интересны только те где есть достоверные данные по базовому и текущему датчикам
         // Сначала выбираем те, которые в диапазоне и у которых доверенные показания по выбранному датчику
-        query="SELECT dimention " +
+        query = new StringBuilder("SELECT dimention " +
                 "FROM incline " +
                "WHERE ((modered=1) OR (modered = '0' AND system_status_id='1')) " +
                       "AND sensor_id = '"+this.getID()+"' " +
-                      "AND dimention > '"+lastDimention+"'";
-        res = helper.query(_conn, query);
+                      "AND dimention > '"+lastDimention+"'");
+        res = helper.query(_conn, query.toString());
         try {
             while (res.next()){
                 neededDimentions.append(res.getString("dimention")).append(",");
@@ -180,14 +221,14 @@ public class SensorNivelir extends Sensor{
 
         neededDimentions = helper.trim(neededDimentions, ",");
         // Потом из только что выбранных выбираем те, у которых доверенные показания по опорному датчику
-        query="SELECT dimention " +
+        query = new StringBuilder("SELECT dimention " +
                 "FROM incline " +
                "WHERE ((modered=1) OR (modered = '0' AND system_status_id='1')) " +
                  "AND sensor_id = '"+this.baseSensorID+"' " +
-                 "AND dimention in ("+neededDimentions+")";
+                 "AND dimention in ("+neededDimentions+")");
     
         neededDimentions = new StringBuilder("0,");
-        res = helper.query(_conn, query);
+        res = helper.query(_conn, query.toString());
         try {
             while (res.next()){
                 neededDimentions.append(res.getString("dimention")).append(",");
@@ -204,13 +245,13 @@ public class SensorNivelir extends Sensor{
             if (this.getID() == workaroundSensors[k]) {kostil=true;}
         }   
         if (kostil){
-            query="SELECT dimention " +
+            query = new StringBuilder("SELECT dimention " +
                     "FROM incline " +
                    "WHERE ((modered=1) OR (modered = '0' " +
                      "AND system_status_id='1')) " +
-                     "AND sensor_id = '"+additionalSensor+"' AND dimention in ("+neededDimentions+")";
+                     "AND sensor_id = '"+additionalSensor+"' AND dimention in ("+neededDimentions+")");
             //System.out.println(query);
-            res = helper.query(_conn, query);
+            res = helper.query(_conn, query.toString());
             neededDimentions = new StringBuilder("0,");
             try {
                 while (res.next()){ 

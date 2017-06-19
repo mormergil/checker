@@ -91,6 +91,7 @@ public class checker extends javax.swing.JFrame {
             labelBlockName.setText("не запущено");
             helper.closeDBConnect(conn);
             System.gc();
+            this.interrupt();
         }
 }
     
