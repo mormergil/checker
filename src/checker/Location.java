@@ -10,14 +10,18 @@ package checker;
  * @author Draug
  */
 import java.sql.*;
+import java.util.ArrayList;
 
 public class Location {
     
     private int id;
     private String name="";
     private String description="";
-    private String groups="";
-    private String sensors="";
+    private StringBuilder groups = new StringBuilder("");
+    private StringBuilder sensorsString = new StringBuilder("");
+    private int sensorCount=0;
+    private ArrayList<Integer> sensors = new ArrayList<Integer>();
+    
     
     public Location(Connection _conn, int _id){
         Helper helper = new Helper();
@@ -40,10 +44,9 @@ public class Location {
         resultSet = helper.query(_conn, query);
         try {
             while (resultSet.next()){
-                groups = groups.concat(resultSet.getString("id_group"));
-                groups = groups.concat(",");
+                groups.append(resultSet.getInt("id_group")).append(",");
             }
-            if (groups.length()>1) {groups = groups.substring(0, groups.length()-1);}
+            if (groups.length()>1) {groups.deleteCharAt(groups.length()-1);}
         } catch (SQLException e) {
                 System.out.println(e);
         }
@@ -52,10 +55,11 @@ public class Location {
         resultSet = helper.query(_conn, query);
         try {
             while (resultSet.next()){
-                sensors = sensors.concat(resultSet.getString("sensor_id"));
-                sensors = sensors.concat(",");
+                sensorsString.append(resultSet.getInt("sensor_id")).append(",");
+                sensors.add(resultSet.getInt("sensor_id"));
+                sensorCount++;
             }
-            if (sensors.length()>1) {sensors = sensors.substring(0, sensors.length()-1);}
+            if (sensorsString.length()>1) {sensorsString.deleteCharAt(sensorsString.length()-1);}
         } catch (SQLException e) {
                 System.out.println(e);
         }
@@ -70,19 +74,19 @@ public class Location {
     }
     
     public String getGroupsString(){
-        return groups;
+        return groups.toString();
     }
     
     public String getSensorsString(){
-        return sensors;
+        return sensorsString.toString();
     }
     
     public int getSensorCount(){
-        int result=0;
-        
-        result = this.sensors.split(",").length;
-        
-        return result;
+        return sensorCount;
+    }
+    
+    public ArrayList getSensors(){
+        return sensors;
     }
     
 }

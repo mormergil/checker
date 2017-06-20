@@ -23,6 +23,7 @@ public class SensorString extends Sensor{
                 lastDimention = resultSet.getInt("md");
                 //System.out.println(lastDimention);
             }
+            resultSet.close();
         } catch (SQLException e){
             System.out.println (e);
         }
@@ -34,34 +35,23 @@ public class SensorString extends Sensor{
         int newCounter=0;
         try {
             while (resultSet.next()){
-            //    query = "SELECT count(sensor_id) AS cnt_s FROM strings WHERE dimention="+resultSet.getString("dimention")+"";
-            //    ResultSet rs = helper.query(_conn, query);
-            //    rs.next();
-                // Проверяем фактическое количество опрошенных датчиков.
-                // Если оно меньше количества датчиков на объекте, считаем что опрос ещё не завершён
-                // и обработку данных оставляем до следующего запуска
-            //    if (rs.getInt("cnt_s") == _sensorsInLocation){ 
-                    newCounter++;
-                    insertQuery.append("(");
-                    insertQuery.append("'").append(this.getID()).append("',");
-                    insertQuery.append("'").append(resultSet.getString("dimention")).append("',");
-                    insertQuery.append("'").append(resultSet.getString("distance")).append("',");
-                    insertQuery.append("'").append(resultSet.getString("angle")).append("',");
-                    insertQuery.append("'").append(resultSet.getString("d_shift")).append("',");
-                    insertQuery.append("'").append(resultSet.getString("system_status")).append("'");
-                    insertQuery.append("),");
-            //    } else {
-            //        System.out.println("No enougth data!");
-            //    } 
+                newCounter++;
+                insertQuery.append("(");
+                insertQuery.append("'").append(this.getID()).append("',");
+                insertQuery.append("'").append(resultSet.getString("dimention")).append("',");
+                insertQuery.append("'").append(resultSet.getString("distance")).append("',");
+                insertQuery.append("'").append(resultSet.getString("angle")).append("',");
+                insertQuery.append("'").append(resultSet.getString("d_shift")).append("',");
+                insertQuery.append("'").append(resultSet.getString("system_status")).append("'");
+                insertQuery.append("),");
             }
+            resultSet.close();
         } catch (SQLException e){
             System.out.println (e);
         }
         insertQuery = helper.trim(insertQuery, ",");
-        //insertQuery += "";
         if (newCounter>0){
             helper.update(_conn, insertQuery.toString());
-            //System.out.println(insertQuery);
         } 
         System.gc();
     }

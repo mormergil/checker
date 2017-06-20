@@ -61,6 +61,7 @@ public class Helper {
         try {
             Statement stmt = _conn.createStatement();
             res = stmt.executeUpdate(_query);
+            stmt.close();
             return res;
           } catch (SQLException e) {
             System.out.println(e);

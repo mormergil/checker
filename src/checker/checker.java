@@ -6,6 +6,7 @@
 package checker;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
@@ -46,12 +47,11 @@ public class checker extends javax.swing.JFrame {
                     Location l = new Location(conn, resultSet.getInt("id"));
                     labelBlockName.setText(l.getName());
 
-                    String sensorsInLocation = l.getSensorsString();
+                    ArrayList sil = l.getSensors();
                     int locationSensorCount = l.getSensorCount();
 
-                    String[] sil = sensorsInLocation.split(",");
-                    for (int i=0; i<sil.length; i++){
-                        int sid = Integer.parseInt(sil[i]);
+                    for (int i=0; i<sil.size(); i++){
+                        int sid = Integer.parseInt(sil.get(i).toString());
                         Sensor s = new Sensor();
                         s.init(conn, sid);
                         labelSensorDescr.setText(s.getDescription());
@@ -59,28 +59,28 @@ public class checker extends javax.swing.JFrame {
                         if (s.getTypeID() == 300){
                             SensorString sS = new SensorString();
                             sS.init(conn, s.getID());
-                            sS.doCompute(conn, locationSensorCount);
-                            sS = null;
+                          //  sS.doCompute(conn, locationSensorCount);
+                            //sS = null;
                         }
 
                         if (s.getTypeID() == 200){
                             SensorCrack sC = new SensorCrack();
                             sC.init(conn, s.getID());
-                            sC.doCompute(conn, locationSensorCount);
-                            sC = null;
+                          //  sC.doCompute(conn, locationSensorCount);
+                            //sC = null;
                         }
 
                         if (s.getTypeID() == 100){
                             SensorNivelir sN = new SensorNivelir();
                             sN.init(conn, s.getID());
                             sN.doCompute(conn, locationSensorCount);
-                            sN = null;
+                            //sN = null;
                         }
                         //System.out.println();
                     }
                     //System.out.println();
                 }
-
+                resultSet.close();
             } catch (SQLException e) {
                 System.out.println(e);
             }

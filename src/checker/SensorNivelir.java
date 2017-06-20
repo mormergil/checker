@@ -36,13 +36,15 @@ public class SensorNivelir extends Sensor{
         try {
             if (res.next()){
                 corrects = new float[res.getInt("cnt")][2];
-                query = new StringBuilder("SELECT * FROM corrects WHERE sensor_id='").append(_sID).append("' ORDER BY dimention ASC");
+                query.delete(0, query.length());
+                query.append("SELECT * FROM corrects WHERE sensor_id='").append(_sID).append("' ORDER BY dimention ASC");
                 res = helper.query(_conn, query.toString());
                 int i=0;
                 while (res.next()){
                     corrects[i][0]=res.getInt("dimention");
                     corrects[i][1]=res.getFloat("volume");
                 }
+                res.close();
             } 
         } catch (SQLException e){
             System.out.println(e);
@@ -55,7 +57,7 @@ public class SensorNivelir extends Sensor{
         float correct=0;
         
         //Правки и корректировки
-        for (int i=0; i<corrects.length-1; i++){
+        for (int i=0; i<corrects.length; i++){
                 if (_dID >= corrects[i][0]){
                     correct=corrects[i][1];
                 }
@@ -70,14 +72,14 @@ public class SensorNivelir extends Sensor{
         s.init(_conn, sID);
         
         // Опорный датчик в группе, опорное измерение
-        StringBuilder query = new StringBuilder();
-        query.append("SELECT base_sensor, base_dim FROM sensor_groups WHERE ID='").append(s.getGroupID()).append("'");
+        StringBuilder query = new StringBuilder("SELECT base_sensor, base_dim FROM sensor_groups WHERE ID='").append(s.getGroupID()).append("'");
         ResultSet res = helper.query(_conn, query.toString());
         try {
             if (res.next()){
                 data.put("baseSensorID", res.getInt("base_sensor"));
                 data.put("baseDimID", res.getInt("base_dim"));
             }
+            res.close();
         } catch (SQLException e) {
             System.out.println ("1"+e);
         }
@@ -90,6 +92,7 @@ public class SensorNivelir extends Sensor{
             if (res.next()){
                 data.put("baseZeroVal", res.getFloat("x"));
             }
+            res.close();
         } catch (SQLException e) {
             System.out.println ("2"+e);
         }
@@ -102,6 +105,7 @@ public class SensorNivelir extends Sensor{
             if (res.next()){
                 data.put("ownZeroVal", res.getFloat("x"));
             }
+            res.close();
         } catch (SQLException e) {
             System.out.println ("3"+e);
         }
@@ -133,11 +137,9 @@ public class SensorNivelir extends Sensor{
                 data[i] = new HashMap<String, Float>();
                 data[i].put("dimention", res.getInt("dimention"));
                 data[i].put("value", res.getFloat("val")+this.getCorrect(c, res.getInt("dimention")));
-                System.out.println("Base sensor "+_baseSensorID+" Added "+this.getCorrect(c, res.getInt("dimention")) );
-///Эот важно!        
-//                $data['y'][$i] += $sensClass->getCorrect($row['dimention']);
                 i++;
-        }    
+            }
+            res.close();
         }catch (SQLException e) {
             System.out.println ("4"+e);    
         }
@@ -154,13 +156,9 @@ public class SensorNivelir extends Sensor{
         try {
             while (res.next()){
                 data[i].replace("value", Float.parseFloat(data[i].get("value").toString())-res.getFloat("val") - (_baseZeroVal - _ownZeroVal) - this.getCorrect(c, res.getInt("dimention")) );
-                System.out.println("Current sensor "+_sensorID+" substracted "+this.getCorrect(c, res.getInt("dimention")) );
-///
-// Наверное, это тоже важно
-///
-//        $data['y'][$i] -= $sensClass->getCorrect($row['dimention']);
                 i++;
             }
+            res.close();
         } catch (SQLException e) {
             System.out.println("5"+e);
         }    
@@ -199,40 +197,38 @@ public class SensorNivelir extends Sensor{
                 lastDimention = res.getInt("md");
                 //System.out.println("LastDimention is " +lastDimention);
             }
+            res.close();
         } catch (SQLException e){
             System.out.println ("6"+e);
         }
         
         // Определяем какие дименшены нам нужны - интересны только те где есть достоверные данные по базовому и текущему датчикам
         // Сначала выбираем те, которые в диапазоне и у которых доверенные показания по выбранному датчику
-        query = new StringBuilder("SELECT dimention " +
-                "FROM incline " +
-               "WHERE ((modered=1) OR (modered = '0' AND system_status_id='1')) " +
-                      "AND sensor_id = '"+this.getID()+"' " +
-                      "AND dimention > '"+lastDimention+"'");
+        query.delete(0, query.length());
+        query.append("SELECT dimention FROM incline WHERE ((modered=1) OR (modered = '0' AND system_status_id='1')) AND sensor_id = '").append(this.getID()).append("' AND dimention > '").append(lastDimention).append("'");
         res = helper.query(_conn, query.toString());
         try {
             while (res.next()){
-                neededDimentions.append(res.getString("dimention")).append(",");
+                neededDimentions.append(res.getInt("dimention")).append(",");
             }
+            res.close();
         } catch (SQLException e){
             System.out.println("7"+e);
         }
 
         neededDimentions = helper.trim(neededDimentions, ",");
         // Потом из только что выбранных выбираем те, у которых доверенные показания по опорному датчику
-        query = new StringBuilder("SELECT dimention " +
-                "FROM incline " +
-               "WHERE ((modered=1) OR (modered = '0' AND system_status_id='1')) " +
-                 "AND sensor_id = '"+this.baseSensorID+"' " +
-                 "AND dimention in ("+neededDimentions+")");
-    
-        neededDimentions = new StringBuilder("0,");
+        query.delete(0, query.length());
+        query.append("SELECT dimention FROM incline WHERE ((modered=1) OR (modered = '0' AND system_status_id='1')) AND sensor_id = '").append(this.baseSensorID).append("' AND dimention in (").append(neededDimentions).append(")");
+        
+        neededDimentions.delete(0,neededDimentions.length()-1);
+        neededDimentions.append("0,");
         res = helper.query(_conn, query.toString());
         try {
             while (res.next()){
-                neededDimentions.append(res.getString("dimention")).append(",");
+                neededDimentions.append(res.getInt("dimention")).append(",");
             }
+            res.close();
         } catch (SQLException e){
             System.out.println("8"+e);
         }
@@ -245,17 +241,15 @@ public class SensorNivelir extends Sensor{
             if (this.getID() == workaroundSensors[k]) {kostil=true;}
         }   
         if (kostil){
-            query = new StringBuilder("SELECT dimention " +
-                    "FROM incline " +
-                   "WHERE ((modered=1) OR (modered = '0' " +
-                     "AND system_status_id='1')) " +
-                     "AND sensor_id = '"+additionalSensor+"' AND dimention in ("+neededDimentions+")");
+            query.delete(0, query.length()-1);
+            query = new StringBuilder("SELECT dimention FROM incline WHERE ((modered=1) OR (modered = '0' AND system_status_id='1')) AND sensor_id = '").append(additionalSensor).append("' AND dimention in (").append(neededDimentions).append(")");
             //System.out.println(query);
             res = helper.query(_conn, query.toString());
-            neededDimentions = new StringBuilder("0,");
+            neededDimentions.delete(0,neededDimentions.length());
+            neededDimentions.append("0,");
             try {
                 while (res.next()){ 
-                    neededDimentions.append(res.getString("dimention")).append(",");
+                    neededDimentions.append(res.getInt("dimention")).append(",");
                 }
             } catch (SQLException e){
                 System.out.println("9"+e);
@@ -281,40 +275,26 @@ public class SensorNivelir extends Sensor{
 
             int newCounter=0;
             for (int i=0; i<data.length-1; i++) {
-                //System.out.println("Sensor: "+this.getID()+" dimention: "+data[i].get("dimention")+" (i="+i+")" );
-               // query = "SELECT count(sensor_id) AS cnt_s FROM incline WHERE dimention="+data[i].get("dimention").toString()+"";
-                //System.out.println();
-              //  ResultSet rs = helper.query(_conn, query);
-              //  try {
-              //      rs.next();
-             //       if (rs.getInt("cnt_s") == _sensorsInLocation){
-                        newCounter++;
-                        insertQuery.append("('").append(this.getID()).append("', ");
-                        insertQuery.append("'").append(data[i].get("dimention")).append("', ");
-                        insertQuery.append("'").append(data[i].get("value")).append("', ");
-                        insertQuery.append("'1', '1' ),");
+                newCounter++;
+                insertQuery.append("('").append(this.getID()).append("', ");
+                insertQuery.append("'").append(data[i].get("dimention")).append("', ");
+                insertQuery.append("'").append(data[i].get("value")).append("', ");
+                insertQuery.append("'1', '1' ),");
 
-                        if (newCounter > 1000){
-                            insertQuery = helper.trim(insertQuery, ",");
-                            helper.update(_conn, insertQuery.toString());
+                if (newCounter > 1000){
+                    insertQuery = helper.trim(insertQuery, ",");
+                    helper.update(_conn, insertQuery.toString());
                     //System.out.println(insertQuery);
-                            newCounter=0;
-                            insertQuery = new StringBuilder("INSERT INTO comp_nivelir(sensor_id, dimention, comp_x, system_status_id, alarm_id) VALUES ");
-                        }
-
-              //      } else {
-              //          System.out.println(" No enougth data");
-              //      }    
-              //  } catch (SQLException e) {
-              //      System.out.println("10"+e);
-              //  }       
+                    newCounter=0;
+                    insertQuery.delete(0, insertQuery.length());
+                            
+                    insertQuery.append("INSERT INTO comp_nivelir(sensor_id, dimention, comp_x, system_status_id, alarm_id) VALUES ");
+                }
             }
 
             insertQuery = helper.trim(insertQuery, ",");
-            //insertQuery += "";
             if (newCounter>0){
                 helper.update(_conn, insertQuery.toString());
-                //System.out.println(insertQuery);
             }
             tmp.clear();
             for (int i=0; i<data.length-1; i++){
