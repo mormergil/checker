@@ -59,14 +59,14 @@ public class checker extends javax.swing.JFrame {
                         if (s.getTypeID() == 300){
                             SensorString sS = new SensorString();
                             sS.init(conn, s.getID());
-                          //  sS.doCompute(conn, locationSensorCount);
+                            sS.doCompute(conn, locationSensorCount);
                             //sS = null;
                         }
 
                         if (s.getTypeID() == 200){
                             SensorCrack sC = new SensorCrack();
                             sC.init(conn, s.getID());
-                          //  sC.doCompute(conn, locationSensorCount);
+                            sC.doCompute(conn, locationSensorCount);
                             //sC = null;
                         }
 

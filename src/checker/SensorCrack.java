@@ -96,7 +96,6 @@ public class SensorCrack extends Sensor{
                 
         int lastDimention=0;
         String query="SELECT MAX(dimention) AS md FROM comp_cracks WHERE sensor_id='"+this.getID()+"'";
-        //System.out.println (query);
         ResultSet resultSet = helper.query(_conn, query);
         try {
             if (resultSet.next()){
@@ -112,7 +111,6 @@ public class SensorCrack extends Sensor{
         
         query = "SELECT * FROM cracks WHERE dimention > '"+lastDimention+"' AND sensor_id='"+this.getID()+"'";
         int newCounter=0;
-        //System.out.println(query);
         resultSet = helper.query(_conn, query);
         try {
             while (resultSet.next()){
@@ -143,10 +141,8 @@ public class SensorCrack extends Sensor{
         if (insertQuery.lastIndexOf(",") == insertQuery.length()-1){
             insertQuery.deleteCharAt(insertQuery.length()-1);
         }
-        //insertQuery += "";
         if (newCounter>0){
             helper.update(_conn, insertQuery.toString());
-            //System.out.println(insertQuery);
         }
         System.gc();
     }
