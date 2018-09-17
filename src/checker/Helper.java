@@ -6,6 +6,7 @@
 package checker;
 
 import java.sql.*;
+import java.util.HashMap;
 /**
  *
  * @author Draug
@@ -85,4 +86,59 @@ public class Helper {
             }
         return res;
     }
+    
+    public HashMap[] getListFromDB(Connection _conn, String _from, String[] _fieldList, String _where, String _order){
+        
+        HashMap[] result;
+        StringBuilder query;
+        int recordsCount=0;
+        
+        // Запросили кол-во нулевых значений для датчика
+        query = new StringBuilder("SELECT COUNT("+_fieldList[0]+") AS cnt ");
+        query.append(" FROM ").append(_from);
+        query.append(" WHERE ").append(_where);
+        ResultSet res = this.query(_conn, query.toString());
+        
+        try {
+            if (res.next()){
+                recordsCount = res.getInt("cnt");
+            }
+            res.close();
+        } catch (SQLException e) {System.out.println(e);}
+        
+        if (recordsCount==0) {
+            result = new HashMap[1]; // На случай если нет ни одной записи
+        } else {
+            result = new HashMap[recordsCount];
+        }
+           
+        result[0] = new HashMap();
+        for (int i=0; i<_fieldList.length; i++){    // Забиваем первую запись нулевыми значениями. Потом, если что-то будет - перепишем.
+            result[0].put(_fieldList[i],0);
+        }  
+
+        query.delete(0, query.length());
+        query.append("SELECT ");
+        for (int i=0; i<_fieldList.length; i++){    // Список полей
+            query.append(_fieldList[i]).append(",");
+        }
+        query.deleteCharAt(query.length()-1); // Удаляем лишнюю запятую
+        query.append(" FROM ").append(_from);
+        query.append(" WHERE ").append(_where);
+        query.append(" ORDER BY ").append(_order);
+        
+        res = this.query(_conn, query.toString());
+        int i=0;
+        try {
+            while (res.next()){
+                if (i>0) {result[i]=new HashMap();}
+                for (int j=0; j<_fieldList.length; j++){    // Список полей
+                    result[i].replace(_fieldList[j], res.getFloat(_fieldList[j]) );
+                }
+                i++;
+            }
+            res.close();
+        } catch (SQLException e){System.out.println(e);}
+            return result;
+        }
 }

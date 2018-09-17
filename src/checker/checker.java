@@ -9,8 +9,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+//import java.util.logging.Level;
+//import java.util.logging.Logger;
 import javax.swing.SpinnerModel;
 import javax.swing.SpinnerNumberModel;
 /**
@@ -36,6 +36,7 @@ public class checker extends javax.swing.JFrame {
         public AppThread() {
         }
       
+        @Override
         public void run() {
             wasStarted=true;
             

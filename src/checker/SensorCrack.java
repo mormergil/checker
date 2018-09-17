@@ -44,55 +44,55 @@ public class SensorCrack extends Sensor{
         return result;
     }
     
-    private HashMap[] getHistory(Connection _conn){
-        //HashMap[] result = new HashMap[_count];
-        HashMap[] history;
-
-        // Запросили кол-во нулевых значений для датчика
-        String query = "SELECT COUNT(dimention) AS cnt "
-                       + "FROM cracks_history "
-                      + "WHERE sensor_id='"+this.getID()+"'";
-        ResultSet res = helper.query(_conn, query);
-        int historyCount = 1;
-        try {
-            if (res.next()){
-                historyCount = res.getInt("cnt");
-            }
-            res.close();
-        } catch (SQLException e) {System.out.println(e);}
-
-        history = new HashMap[historyCount];
-        history[0] = new HashMap();
-        history[0].put("dimention", 1);
-        history[0].put("expantion", 0);
-        history[0].put("real_expantion", 0);
-        history[0].put("shift", 0);
-        history[0].put("angle", 0);   
-
-        // Запросили нулевые значения для датчика
-        query = "SELECT dimention, expantion, real_expantion, shift, angle "
-                + "FROM cracks_history "
-               + "WHERE sensor_id='"+this.getID()+"' ORDER BY dimention ASC";
-        res = helper.query(_conn, query);
-        int i=0;
-        try {
-            while (res.next()){
-                if (i>0) {history[i]=new HashMap();}
-                history[i].replace("dimention", res.getInt("dimention") );
-                history[i].replace("expantion", res.getFloat("expantion") );
-                history[i].replace("real_expantion", res.getFloat("real_expantion") );
-                history[i].replace("shift", res.getFloat("shift") );
-                history[i].replace("angle", res.getFloat("angle") );
-                i++;
-            }
-            res.close();
-        } catch (SQLException e){System.out.println(e);}
-        return history;
-    }
+//    private HashMap[] getHistory(Connection _conn){
+//        //HashMap[] result = new HashMap[_count];
+//        HashMap[] history;
+//
+//        // Запросили кол-во нулевых значений для датчика
+//        String query = "SELECT COUNT(dimention) AS cnt "
+//                       + "FROM cracks_history "
+//                      + "WHERE sensor_id='"+this.getID()+"'";
+//        ResultSet res = helper.query(_conn, query);
+//        int historyCount = 1;
+//        try {
+//            if (res.next()){
+//                historyCount = res.getInt("cnt");
+//            }
+//            res.close();
+//        } catch (SQLException e) {System.out.println(e);}
+//
+//        history = new HashMap[historyCount];
+//        history[0] = new HashMap();
+//        history[0].put("dimention", 1);
+//        history[0].put("expantion", 0);
+//        history[0].put("real_expantion", 0);
+//        history[0].put("shift", 0);
+//        history[0].put("angle", 0);   
+//
+//        // Запросили нулевые значения для датчика
+//        query = "SELECT dimention, expantion, real_expantion, shift, angle "
+//                + "FROM cracks_history "
+//               + "WHERE sensor_id='"+this.getID()+"' ORDER BY dimention ASC";
+//        res = helper.query(_conn, query);
+//        int i=0;
+//        try {
+//            while (res.next()){
+//                if (i>0) {history[i]=new HashMap();}
+//                history[i].replace("dimention", res.getInt("dimention") );
+//                history[i].replace("expantion", res.getFloat("expantion") );
+//                history[i].replace("real_expantion", res.getFloat("real_expantion") );
+//                history[i].replace("shift", res.getFloat("shift") );
+//                history[i].replace("angle", res.getFloat("angle") );
+//                i++;
+//            }
+//            res.close();
+//        } catch (SQLException e){System.out.println(e);}
+//        return history;
+//    }
     
     public void doCompute(Connection _conn, int _sensorsInLocation){
         
-        HashMap[] history = this.getHistory(_conn);
+        HashMap[] history = helper.getListFromDB(_conn, "cracks_history", new String[]{"dimention","expantion","real_expantion","shift","angle"}, "sensor_id='"+this.getID()+"'", "dimention ASC");
                 
         int lastDimention=0;
         String query="SELECT MAX(dimention) AS md FROM comp_cracks WHERE sensor_id='"+this.getID()+"'";

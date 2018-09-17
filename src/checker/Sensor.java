@@ -10,6 +10,7 @@ package checker;
  * @author Draug
  */
 import java.sql.*;
+import java.util.HashMap;
 
 public class Sensor {
  
@@ -20,6 +21,9 @@ public class Sensor {
     private int groupID;
     private int locationID;
     private int typeID;
+    
+    private HashMap[] alertValues; // Набор аварийных значений для датчика. Значений может быть несколько. С такого-то измерения одно значение, через полгода - другое...
+    private HashMap[] warningValues; // Набор опасных значений для датчика. Значений может быть несколько. С такого-то измерения одно значение, через полгода - другое...
     
     public void init(Connection _conn,int _id){
         Helper helper = new Helper();
@@ -44,9 +48,12 @@ public class Sensor {
         try {
             resultSet.next();
             this.locationID = resultSet.getInt("id_location");
-            } catch (SQLException e) {
+        } catch (SQLException e) {
                 System.out.println(e);
-            }
+        }
+        
+        this.alertValues = helper.getListFromDB(_conn, "sensor_alerts", new String[]{"value", "dimention"}, "sensor_id='"+this.ID+"'", "dimention ASC");
+        this.warningValues = helper.getListFromDB(_conn, "sensor_warnings", new String[]{"value", "dimention"}, "sensor_id='"+this.ID+"'", "dimention ASC");
     }
     
     public String getName(){
